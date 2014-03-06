@@ -10,6 +10,12 @@
   "license": "ISC",
   "dependencies": {
     "q": "~1.0.0",
-    "http": "0.0.0"
+    "http": "0.0.0",
+    "request": "~2.34.0",
+    "lodash": "~2.4.1",
+    "optimist": "~0.6.1",
+    "chalk": "~0.4.0",
+    "iconv": "~2.0.7",
+    "es6-template-strings": "0.0.0"
   }
 }

@@ -118,8 +118,19 @@ Optional Variables:
 
 */
 {
-  graphitePort: 2003
-, graphiteHost: "graphite.example.com"
-, port: 8125
-, backends: [ "./backends/graphite" ]
+    interval: 60000,
+    stocks: [
+        {
+            uuid: 'sz000418',
+            buyPrice: 8.785,
+            minProfitRate: 0.1,
+            maxLossRate: 0.1,
+        },
+        {
+            uuid: 'sz600804',
+            buyPrice: 8.785,
+            minProfitRate: 0.1,
+            maxLossRate: 0.1,
+        }
+    ]
 }
