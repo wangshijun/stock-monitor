@@ -57,15 +57,16 @@ config.init(process.argv[2], function (conf, oldConf) {
                         todayMminPrice: Number(tmp[5]),
                     };
 
-                    var delta = (data.currentPrice - stock.buyPrice).toFixed(3);
+                    var delta = (data.currentPrice - stock.buyPrice).toFixed(2);
                     var ratio = (delta / stock.buyPrice).toFixed(4) * 100;
                     var config = {
+                        group: stock.uuid,
                         name: data.name,
-                        buyPrice: stock.buyPrice.toFixed(3),
-                        profit: (stock.buyVolume * delta).toFixed(3),
-                        currentPrice: data.currentPrice.toFixed(3),
-                        delta: delta,
-                        ratio: ratio
+                        buyPrice: stock.buyPrice.toFixed(2),
+                        profit: Math.abs((stock.buyVolume * delta).toFixed(2)),
+                        currentPrice: data.currentPrice.toFixed(2),
+                        delta: Math.abs(delta),
+                        ratio: Math.abs(ratio)
                     };
 
                     if (ratio >= stock.minProfitRate * 100) {
@@ -103,7 +104,7 @@ config.init(process.argv[2], function (conf, oldConf) {
 
     function notify(config, callback) {
         var url = 'http://127.0.0.1:1337/' + config.type;
-        var message = template('股票"${name}"价格刚从购买时的${buyPrice}元${direction}到${currentPrice}元,相比较购买时${direction}了${delta}元(${ratio}%)${tip},${status}${profit}元', config);
+        var message = template('股票"${name}"价格从${buyPrice}元${direction}到${currentPrice}元, 相比较购买时${direction}了${delta}元(${ratio}%)${tip}, 共${status}${profit}元', config);
         var data = {
             title: '股价观察员',
             message: message
