@@ -16,6 +16,7 @@
     "optimist": "~0.6.1",
     "chalk": "~0.4.0",
     "iconv": "~2.0.7",
-    "es6-template-strings": "0.0.0"
+    "es6-template-strings": "0.0.0",
+    "pushbullet": "~0.4.0"
   }
 }
