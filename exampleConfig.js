@@ -2,6 +2,7 @@
 
 Required Variables:
 
+    interval:           interval(ms) for the monitor to check stock prices
 
     stocks:             array of stocks you want to monitor, each item is a map
         uuid            stock uuid, go http://hq.sinajs.cn/?list={uuid} to verify this
@@ -11,15 +12,19 @@ Required Variables:
         maxLossRate     max loss rate that you can suffer
 
     notify:             notify config object, possible methods: terminal, pushbullet
-        pushbullet: you must specify your api key and device, usefull when this run in background
-        terminal: choose which message types are notified, usefull when you are at the computer
-
-    interval:           interval(ms) for the monitor to check stock prices
+        on:             array of possible conditions: profit, loss, info
+        type:           notify method
+            pushbullet:     usefull when this run in background
+            terminal:       usefull when you are at the computer
+        apikey:         required when type is pushbullet
+        host:           required when type is terminal
+        port:           required when type is terminal
 
 */
 {
     interval: 60000,
     notify: {
+        on: ['profit', 'loss', 'info'],
         type: 'pushbullet',
         apikey: 'YOUR API KEY HERE',
     },

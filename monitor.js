@@ -23,6 +23,16 @@ config.init(process.argv[2], function (conf, oldConf) {
     }
 
     conf.interval = conf.interval || 60000;
+    if (!conf.notify) {         // default notify method
+        conf.notify = {
+            on: ['profit', 'loss', 'info'],
+            type: 'terminal',
+        };
+    }
+
+    // include notify engine
+    // TODO error tollerance
+    var engine = require('./notify/' + conf.notify.type);
 
     monitorAll();
 
@@ -44,11 +54,11 @@ config.init(process.argv[2], function (conf, oldConf) {
             if (!err && response.statusCode === 200) {
                 var response = iconv.convert(response.body).toString(),
                     matches = response.match(/\"([^\"]+)\"/g),
-                    data, tmp;
+                    info, tmp;
 
                 if (matches) {
                     tmp = matches[0].replace(/\"/g, '').split(',');
-                    data = {
+                    info = {
                         name: tmp[0].toString(),
                         todayStartPrice: Number(tmp[1]),
                         yesterdayEndPrice: Number(tmp[2]),
@@ -57,42 +67,42 @@ config.init(process.argv[2], function (conf, oldConf) {
                         todayMminPrice: Number(tmp[5]),
                     };
 
-                    var delta = (data.currentPrice - stock.buyPrice).toFixed(2);
+                    var delta = (info.currentPrice - stock.buyPrice).toFixed(2);
                     var ratio = (delta / stock.buyPrice * 100).toFixed(2);
-                    var config = {
+                    var data = {
                         index: index,
                         group: stock.uuid,
-                        name: data.name,
+                        name: info.name,
                         buyPrice: stock.buyPrice.toFixed(2),
                         profit: Math.abs((stock.buyVolume * delta).toFixed(2)),
-                        currentPrice: data.currentPrice.toFixed(2),
+                        currentPrice: info.currentPrice.toFixed(2),
                         delta: Math.abs(delta),
                         ratio: Math.abs(ratio)
                     };
 
                     if (ratio >= stock.minProfitRate * 100) {
-                        config.type = 'pass';
-                        config.direction = '上升';
-                        config.status = '赚了';
-                        config.tip = ', 见好就收吧';
+                        data.type = 'profit';
+                        data.direction = '上升';
+                        data.status = '赚了';
+                        data.tip = ', 见好就收吧';
                     } else if (ratio <= stock.maxLossRate * 100) {
-                        config.type = 'fail';
-                        config.direction = '下跌';
-                        config.status = '赔了';
-                        config.tip = ', 赶紧止损吧';
+                        data.type = 'loss';
+                        data.direction = '下跌';
+                        data.status = '赔了';
+                        data.tip = ', 赶紧止损吧';
                     } else {
-                        config.type = 'info';
-                        config.direction = ratio > 0 ? '上升' : '下降';
-                        config.status = ratio > 0 ? '赚了' : '赔了';
-                        config.tip = '';
+                        data.type = 'info';
+                        data.direction = ratio > 0 ? '上升' : '下降';
+                        data.status = ratio > 0 ? '赚了' : '赔了';
+                        data.tip = '';
                     }
 
-                    notify(config, function () {
-                        d.resolve(config);
+                    notify(data, function () {
+                        d.resolve(data);
                     });
 
                 } else {
-                    d.reject('unable to parse stock data');
+                    d.reject('unable to parse stock info');
                 }
 
             } else {
@@ -103,26 +113,19 @@ config.init(process.argv[2], function (conf, oldConf) {
         return d.promise;
     }
 
-    function notify(config, callback) {
+    function notify(data, callback) {
+        var config = conf.notify;
+        if (config.on.indexOf(data.type) === -1) {
+            return;
+        }
         setTimeout(function () {
-            var url = 'http://127.0.0.1:1337/' + config.type;
-            var message = template('股票"${name}"价格从${buyPrice}元${direction}到${currentPrice}元, 相比较购买时${direction}了${delta}元(${ratio}%)${tip}, 共${status}${profit}元', config);
-            var data = {
+            var message = template('股票"${name}"价格从${buyPrice}元${direction}到${currentPrice}元, 相比购买时${direction}了${delta}元(${ratio}%)${tip}, 共${status}${profit}元', data);
+            engine.notify({
+                type: data.type,
                 title: '股价观察员',
                 message: message
-            };
-
-            // console.log('notify url: ' + url);
-            // console.log('notify conf: ' + JSON.stringify(config));
-
-            request({url: url, json: true, body: data, method: 'POST'}, function (err, response, body) {
-                if (!err && response.statusCode === 200) {
-                    callback(response.body.status);
-                } else {
-                    console.log(err);
-                }
-            });
-        }, config.index * 5000);
+            }, config, callback);
+        }, data.index * 3000);
     }
 
 });
