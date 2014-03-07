@@ -34,7 +34,7 @@ config.init(process.argv[2], function (conf, oldConf) {
         }).done();
     }
 
-    function monitorOne(stock) {
+    function monitorOne(stock, index) {
         var d = Q.defer();
 
         api.query = { list: stock.uuid };
@@ -58,8 +58,9 @@ config.init(process.argv[2], function (conf, oldConf) {
                     };
 
                     var delta = (data.currentPrice - stock.buyPrice).toFixed(2);
-                    var ratio = (delta / stock.buyPrice).toFixed(4) * 100;
+                    var ratio = (delta / stock.buyPrice * 100).toFixed(2);
                     var config = {
+                        index: index,
                         group: stock.uuid,
                         name: data.name,
                         buyPrice: stock.buyPrice.toFixed(2),
@@ -103,23 +104,25 @@ config.init(process.argv[2], function (conf, oldConf) {
     }
 
     function notify(config, callback) {
-        var url = 'http://127.0.0.1:1337/' + config.type;
-        var message = template('股票"${name}"价格从${buyPrice}元${direction}到${currentPrice}元, 相比较购买时${direction}了${delta}元(${ratio}%)${tip}, 共${status}${profit}元', config);
-        var data = {
-            title: '股价观察员',
-            message: message
-        };
+        setTimeout(function () {
+            var url = 'http://127.0.0.1:1337/' + config.type;
+            var message = template('股票"${name}"价格从${buyPrice}元${direction}到${currentPrice}元, 相比较购买时${direction}了${delta}元(${ratio}%)${tip}, 共${status}${profit}元', config);
+            var data = {
+                title: '股价观察员',
+                message: message
+            };
 
-        // console.log('notify url: ' + url);
-        // console.log('notify conf: ' + JSON.stringify(config));
+            // console.log('notify url: ' + url);
+            // console.log('notify conf: ' + JSON.stringify(config));
 
-        request({url: url, json: true, body: data, method: 'POST'}, function (err, response, body) {
-            if (!err && response.statusCode === 200) {
-                callback(response.body.status);
-            } else {
-                console.log(err);
-            }
-        });
+            request({url: url, json: true, body: data, method: 'POST'}, function (err, response, body) {
+                if (!err && response.statusCode === 200) {
+                    callback(response.body.status);
+                } else {
+                    console.log(err);
+                }
+            });
+        }, config.index * 5000);
     }
 
 });
