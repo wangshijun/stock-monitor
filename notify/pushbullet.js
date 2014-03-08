@@ -13,17 +13,18 @@ exports.notify = function (data, config, callback) {
         return util.log('stock-monitor: pushbullet notifer require apikey to work');
     }
 
-    console.log(config);
-
     var pusher = new PushBullet(config.apikey);
 
     if (config.device) {
-        sendNote(config.device);
+        sendNote(config.device)
+            .fail(function (err) {
+                util.error(JSON.stringify(err));
+            });
     } else {
         getDevices()
             .then(sendNote)
-            .fail(function (error) {
-                util.error(error);
+            .fail(function (err) {
+                util.error(JSON.stringify(err));
             });
     }
 
@@ -31,9 +32,9 @@ exports.notify = function (data, config, callback) {
     function getDevices() {
         var d = Q.defer();
 
-        pusher.devices(function(error, response) {
-            if (error) {
-                d.reject(error);
+        pusher.devices(function(err, response) {
+            if (err) {
+                d.reject(err);
             } else {
                 d.resolve(response);
             }
@@ -46,46 +47,44 @@ exports.notify = function (data, config, callback) {
     function sendNote(deviceInfo) {
         var d = Q.defer();
 
-        // send to specified device
-        if (typeof deviceInfo === 'object') {
-            pusher.note(deviceInfo, data.title, data.message, function(error, response) {
-                if (error) {
-                    d.reject(error);
-                } else {
-                    d.resolve(response);
-                }
-            });
-
         // TODO sent to all devices
-        } else {
-            util.log('send to all device');
-            var devices = deviceInfo.devices;
-            var tasks = devices.map(function (device) {
+        if (typeof deviceInfo === 'object' && deviceInfo.devices instanceof Array) {
+            var tasks = deviceInfo.devices.map(function (device) {
                 var d = Q.defer();
 
-                if (device.extra.model.toLowerCase() === 'chrome') {
-                    d.resolve('chrome');
+                if (device.extras.nickname && device.extras.nickname.toLowerCase() === 'chrome') {
+                    d.resolve({});
+                } else {
+                    pusher.note(device.id, data.title, data.message, function(err, response) {
+                        util.log('PushBullet message send: ' + device.id);
+                        if (err) {
+                            d.reject(err);
+                        } else {
+                            d.resolve(response);
+                        }
+                    });
                 }
-                pusher.note(device.id, data.title, data.message, function(error, response) {
-                    if (error) {
-                        util.log(error);
-                        d.reject(error);
-                    } else {
-                        util.log(response);
-                        d.resolve(response);
-                    }
-                });
 
-                return q.promise();
+                return d.promise;
             });
 
             Q.allSettled(tasks)
                 .then(function () {
-                    d.resolve('send to all devices');
+                    d.resolve({status: true, msg: 'send to all devices'});
                 })
-                .fail(function (error) {
-                    d.reject(error);
+                .fail(function (err) {
+                    d.reject(err);
                 });
+
+        // send to specified device
+        } else {
+            pusher.note(deviceInfo, data.title, data.message, function(err, response) {
+                if (err) {
+                    d.reject(err);
+                } else {
+                    d.resolve(response);
+                }
+            });
 
         }
 

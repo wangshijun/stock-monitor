@@ -119,7 +119,7 @@ config.init(process.argv[2], function (conf, oldConf) {
             return;
         }
         setTimeout(function () {
-            var message = template('股票"${name}"价格从${buyPrice}元${direction}到${currentPrice}元, 相比购买时${direction}了${delta}元(${ratio}%)${tip}, 共${status}${profit}元', data);
+            var message = template('"${name}"从${buyPrice}元${direction}到${currentPrice}元, ${direction}了${delta}元(${ratio}%)${tip}, 共${status}${profit}元', data);
             engine.notify({
                 type: data.type,
                 title: '股价观察员',
